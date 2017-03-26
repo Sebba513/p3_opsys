@@ -1,5 +1,7 @@
 package round_robin;
 
+import com.sun.prism.shader.Solid_ImagePattern_Loader;
+
 import java.util.LinkedList;
 
 /**
@@ -13,7 +15,17 @@ public class Cpu {
      * @param maxCpuTime	The Round Robin time quant to be used.
      * @param statistics	A reference to the statistics collector.
      */
+
+    private LinkedList<Process> cpuQueue;
+    private long maxCpuTime;
+    private Statistics statistics;
+    private Process activeProcess = null;
+
     public Cpu(LinkedList<Process> cpuQueue, long maxCpuTime, Statistics statistics) {
+        this.cpuQueue = cpuQueue;
+        this.maxCpuTime = maxCpuTime;
+        this.statistics = statistics;
+
         // Incomplete
     }
 
@@ -26,7 +38,13 @@ public class Cpu {
      *				or null	if no process was activated.
      */
     public Event insertProcess(Process p, long clock) {
-        // Incomplete
+        cpuQueue.addLast(p);
+        //System.out.println("Added " + p.getProcessId() + " to CPU queue");
+        //if CPU is idle
+        if(activeProcess == null){
+            //System.out.println("CPU is idle, so we activate " + p.toString());
+            return switchProcess(clock);
+        }
         return null;
     }
 
@@ -39,8 +57,26 @@ public class Cpu {
      *				or null	if no process was activated.
      */
     public Event switchProcess(long clock) {
+        Event event;
+
+        if(!cpuQueue.isEmpty()){
+            activeProcess = cpuQueue.removeFirst();
+            System.out.println(activeProcess.getProcessId() + " is in CPU " + activeProcess.getCpuTimeNeededLeft() +
+            " " + activeProcess.getTimeToNextIoOperation());
+            event = getNextEvent(clock);
+        }else{
+            activeProcess = null;
+            return null;
+        }
+
+        //place the previously active process in the queue if it isn't done
+        if((event.getType() == Event.SWITCH_PROCESS)){
+            cpuQueue.addLast(activeProcess);
+        }
+        activeProcess.updateStatistics(statistics);
+        return event;
+
         // Incomplete
-        return null;
     }
 
     /**
@@ -50,8 +86,9 @@ public class Cpu {
      *			process was switched in.
      */
     public Event activeProcessLeft(long clock) {
-        // Incomplete
-        return null;
+        //incomplete
+        activeProcess = null;
+        return switchProcess(clock);
     }
 
     /**
@@ -59,8 +96,7 @@ public class Cpu {
      * @return	The process currently using the CPU.
      */
     public Process getActiveProcess() {
-        // Incomplete
-        return null;
+        return activeProcess;
     }
 
     /**
@@ -69,6 +105,33 @@ public class Cpu {
      */
     public void timePassed(long timePassed) {
         // Incomplete
+        //update active process clock
+        //remove timePassed from active process
+        if(activeProcess != null){
+            activeProcess.updateStatistics(statistics);
+        }
+    }
+
+    private Event getNextEvent(long clock){
+        int eventType = Event.SWITCH_PROCESS;
+        long runTime = maxCpuTime;
+        long remainingTime = activeProcess.getCpuTimeNeededLeft();
+        long timeToIo = activeProcess.getTimeToNextIoOperation();
+
+        //compare all the times to next events and take the shortest
+        if(timeToIo < runTime){
+            //run until IO
+            runTime = timeToIo;
+            eventType = Event.IO_REQUEST;
+        }
+        if(remainingTime < runTime){
+            //run for remaining time
+            runTime = remainingTime;
+            eventType = Event.END_PROCESS;
+        }
+
+        activeProcess.activate(runTime);
+        return new Event(eventType, clock + runTime);
     }
 
 }

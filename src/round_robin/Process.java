@@ -57,6 +57,8 @@ public class Process {
 		timeOfLastEvent = creationTime;
 		// Assign a process ID
 		processId = nextProcessId++;
+
+		resetIoTime();
 	}
 
 	/**
@@ -99,6 +101,37 @@ public class Process {
 
 	public long getProcessId() {
 		return processId;
+	}
+
+	public long getCpuTimeNeeded(){
+		return cpuTimeNeeded;
+	}
+
+	public long getTimeSpentInCpu(){
+		return timeSpentInCpu;
+	}
+
+	public long getCpuTimeNeededLeft(){
+		return cpuTimeNeeded - timeSpentInCpu;
+	}
+
+	public long getTimeToNextIoOperation(){
+		return timeToNextIoOperation;
+	}
+
+	public void activate(long time){
+		timeSpentInCpu += time;
+		timeToNextIoOperation -= time;
+		System.out.println("Process " + processId + " ran for " + time);
+	}
+
+	public void resetIoTime(){
+		timeToNextIoOperation = (long)(Math.random()*avgIoInterval);
+	}
+
+
+	public void setTimeOfLastEvent(long time){
+		timeOfLastEvent = time;
 	}
 
 	// Add more methods as needed

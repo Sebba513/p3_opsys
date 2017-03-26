@@ -46,6 +46,7 @@ public class Simulator
 	 * @param simulationLength		The length of the simulation.
 	 * @param avgArrivalInterval	The average time between process arrivals.
 	 */
+
 	public Simulator(long memorySize, long maxCpuTime, long avgIoTime, long simulationLength, long avgArrivalInterval) {
 		this.simulationLength = simulationLength;
 		this.avgArrivalInterval = avgArrivalInterval;
@@ -157,10 +158,10 @@ public class Simulator
 			
 			// TODO: Add this process to the CPU queue!
 			// Also add new events to the event queue if needed
-			cpuQueue.add(p);
+			eventQueue.insertEvent(cpu.insertProcess(p,clock));
 			// Since we haven't implemented the CPU and I/O device yet,
 			// we let the process leave the system immediately, for now.
-			memory.processCompleted(p);
+			//memory.processCompleted(p);
 			// Try to use the freed memory:
 			transferProcessFromMemToReady();
 			// Update statistics
@@ -175,6 +176,8 @@ public class Simulator
 	 * Simulates a process switch.
 	 */
 	private void switchProcess() {
+	    System.out.println("Switching process");
+	    eventQueue.insertEvent(cpu.switchProcess(clock));
 		// Incomplete
 	}
 
@@ -182,6 +185,9 @@ public class Simulator
 	 * Ends the active process, and deallocates any resources allocated to it.
 	 */
 	private void endProcess() {
+        System.out.println("Ending process " + cpu.getActiveProcess().getProcessId());
+        memory.processCompleted(cpu.getActiveProcess());
+        eventQueue.insertEvent(cpu.activeProcessLeft(clock));
 		// Incomplete
 	}
 
@@ -190,6 +196,9 @@ public class Simulator
 	 * perform an I/O operation.
 	 */
 	private void processIoRequest() {
+        System.out.println("Processing IO request from " + cpu.getActiveProcess().getProcessId());
+        eventQueue.insertEvent(io.addIoRequest(cpu.getActiveProcess(),clock));
+        eventQueue.insertEvent(cpu.activeProcessLeft(clock));
 		// Incomplete
 	}
 
@@ -198,6 +207,12 @@ public class Simulator
 	 * is done with its I/O operation.
 	 */
 	private void endIoOperation() {
+        System.out.println("Ending IO process " + io.getActiveProcess().getProcessId());
+	    Process activeP = io.removeActiveProcess();
+	    if(activeP.getCpuTimeNeededLeft() > 0){
+	        eventQueue.insertEvent(cpu.insertProcess(activeP, clock));
+        }
+	    eventQueue.insertEvent(io.startIoOperation(clock));
 		// Incomplete
 	}
 
